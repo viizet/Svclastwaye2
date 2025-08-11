@@ -215,3 +215,144 @@ class Database:
                 
         except sqlite3.Error as e:
             logger.error(f"Error updating activity for user {user_id}: {e}")
+import sqlite3
+import os
+from datetime import datetime
+
+class Database:
+    def __init__(self, db_name="bot_database.db"):
+        self.db_name = db_name
+        self.init_database()
+    
+    def init_database(self):
+        """Initialize database tables"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                is_banned INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Conversions table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS conversions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                files_count INTEGER,
+                successful_count INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (user_id)
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    
+    def add_user(self, user_id, username, first_name, last_name):
+        """Add or update user"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO users (user_id, username, first_name, last_name)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, username, first_name, last_name))
+        
+        conn.commit()
+        conn.close()
+    
+    def is_user_banned(self, user_id):
+        """Check if user is banned"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT is_banned FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        
+        conn.close()
+        return result and result[0] == 1
+    
+    def ban_user(self, user_id):
+        """Ban user"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('UPDATE users SET is_banned = 1 WHERE user_id = ?', (user_id,))
+        
+        conn.commit()
+        conn.close()
+    
+    def unban_user(self, user_id):
+        """Unban user"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('UPDATE users SET is_banned = 0 WHERE user_id = ?', (user_id,))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_all_users(self):
+        """Get all users"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT user_id, username, first_name, last_name FROM users WHERE is_banned = 0')
+        result = cursor.fetchall()
+        
+        conn.close()
+        return result
+    
+    def get_user_count(self):
+        """Get total user count"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT COUNT(*) FROM users')
+        result = cursor.fetchone()[0]
+        
+        conn.close()
+        return result
+    
+    def get_banned_user_count(self):
+        """Get banned user count"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT COUNT(*) FROM users WHERE is_banned = 1')
+        result = cursor.fetchone()[0]
+        
+        conn.close()
+        return result
+    
+    def log_conversion_activity(self, user_id, files_count, successful_count):
+        """Log conversion activity"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO conversions (user_id, files_count, successful_count)
+            VALUES (?, ?, ?)
+        ''', (user_id, files_count, successful_count))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_total_conversions(self):
+        """Get total conversion count"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT COALESCE(SUM(successful_count), 0) FROM conversions')
+        result = cursor.fetchone()[0]
+        
+        conn.close()
+        return result

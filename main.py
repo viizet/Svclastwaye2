@@ -10,13 +10,9 @@ from xml.etree import ElementTree as ET
 from datetime import datetime
 import base64
 
-try:
-    from telegram import Update
-    from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-    from telegram.constants import ChatAction
-except ImportError:
-    print("Error: python-telegram-bot not properly installed")
-    exit(1)
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.constants import ChatAction
 import cairosvg
 from PIL import Image
 

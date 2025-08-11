@@ -313,3 +313,117 @@ class ValidationHelper:
         """Generate TGS filename from original filename"""
         base_name = original_filename.rsplit('.', 1)[0]
         return f"{base_name}.tgs"
+import json
+import gzip
+import tempfile
+from io import BytesIO
+from xml.etree import ElementTree as ET
+import cairosvg
+from PIL import Image
+
+class SVGValidator:
+    def __init__(self, required_width=512, required_height=512):
+        self.required_width = required_width
+        self.required_height = required_height
+    
+    def validate_svg(self, svg_content):
+        """Validate SVG dimensions"""
+        try:
+            # Parse SVG
+            root = ET.fromstring(svg_content)
+            
+            # Get dimensions
+            width = root.get('width')
+            height = root.get('height')
+            
+            if not width or not height:
+                return False, "SVG missing width or height attributes"
+            
+            # Parse dimensions (remove 'px' if present)
+            try:
+                width_val = float(width.replace('px', ''))
+                height_val = float(height.replace('px', ''))
+            except ValueError:
+                return False, "Invalid width or height values"
+            
+            # Check dimensions
+            if width_val != self.required_width or height_val != self.required_height:
+                return False, f"SVG must be exactly {self.required_width}×{self.required_height} pixels (got {width_val}×{height_val})"
+            
+            return True, "Valid"
+            
+        except ET.ParseError:
+            return False, "Invalid SVG file format"
+        except Exception as e:
+            return False, f"SVG validation error: {str(e)}"
+
+class TGSConverter:
+    def __init__(self):
+        pass
+    
+    async def convert_svg_to_tgs(self, svg_content):
+        """Convert SVG to TGS format"""
+        try:
+            # Convert SVG to PNG
+            png_data = cairosvg.svg2png(bytestring=svg_content, output_width=512, output_height=512)
+            
+            # Convert PNG to base64
+            import base64
+            png_base64 = base64.b64encode(png_data).decode('utf-8')
+            
+            # Create Lottie JSON structure
+            lottie_json = {
+                "v": "5.7.1",
+                "fr": 60,
+                "ip": 0,
+                "op": 60,
+                "w": 512,
+                "h": 512,
+                "nm": "SVG Animation",
+                "ddd": 0,
+                "assets": [
+                    {
+                        "id": "image_0",
+                        "w": 512,
+                        "h": 512,
+                        "u": "",
+                        "p": f"data:image/png;base64,{png_base64}",
+                        "e": 1
+                    }
+                ],
+                "layers": [
+                    {
+                        "ddd": 0,
+                        "ind": 1,
+                        "ty": 2,
+                        "nm": "SVG Layer",
+                        "refId": "image_0",
+                        "sr": 1,
+                        "ks": {
+                            "o": {"a": 0, "k": 100, "ix": 11},
+                            "r": {"a": 0, "k": 0, "ix": 10},
+                            "p": {"a": 0, "k": [256, 256, 0], "ix": 2},
+                            "a": {"a": 0, "k": [256, 256, 0], "ix": 1},
+                            "s": {"a": 0, "k": [100, 100, 100], "ix": 6}
+                        },
+                        "ao": 0,
+                        "ip": 0,
+                        "op": 60,
+                        "st": 0,
+                        "bm": 0
+                    }
+                ],
+                "markers": []
+            }
+            
+            # Convert to JSON string
+            json_string = json.dumps(lottie_json, separators=(',', ':'))
+            
+            # Compress with gzip
+            compressed_data = gzip.compress(json_string.encode('utf-8'))
+            
+            return compressed_data
+            
+        except Exception as e:
+            print(f"Conversion error: {e}")
+            return None
