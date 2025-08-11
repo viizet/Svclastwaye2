@@ -9,12 +9,14 @@ from io import BytesIO
 from xml.etree import ElementTree as ET
 from datetime import datetime
 import base64
+from threading import Thread
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from telegram.constants import ChatAction
 import cairosvg
 from PIL import Image
+from flask import Flask, jsonify
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +29,21 @@ logger = logging.getLogger(__name__)
 from database import Database
 from config import Config
 from utils import SVGValidator, TGSConverter
+
+# Create Flask app
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return jsonify({
+        'status': 'running',
+        'bot': 'SVGToTGS Bot',
+        'message': 'Bot is running successfully!'
+    })
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy'})
 
 class SVGToTGSBot:
     def __init__(self):
@@ -385,29 +402,45 @@ class SVGToTGSBot:
     async def error_handler(self, update: object, context: CallbackContext) -> None:
         """Handle errors"""
         logger.error(f"Exception while handling an update: {context.error}")
+
+# Global bot instance
+bot_instance = None
+
+def run_bot():
+    """Initialize and run the bot"""
+    global bot_instance
+    bot_instance = SVGToTGSBot()
     
-    def run(self):
-        """Run the bot"""
-        # Create application
-        self.application = Application.builder().token(self.config.BOT_TOKEN).build()
-        
-        # Add handlers
-        self.application.add_handler(CommandHandler("start", self.start))
-        self.application.add_handler(CommandHandler("help", self.help_command))
-        self.application.add_handler(CommandHandler("broadcast", self.broadcast_command))
-        self.application.add_handler(CommandHandler("ban", self.ban_command))
-        self.application.add_handler(CommandHandler("unban", self.unban_command))
-        self.application.add_handler(CommandHandler("stats", self.stats_command))
-        self.application.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
-        
-        # Add error handler
-        self.application.add_error_handler(self.error_handler)
-        
-        logger.info("Bot started successfully!")
-        
-        # Run the bot
-        self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Create application
+    application = Application.builder().token(bot_instance.config.BOT_TOKEN).build()
+    bot_instance.application = application
+    
+    # Add handlers
+    application.add_handler(CommandHandler("start", bot_instance.start))
+    application.add_handler(CommandHandler("help", bot_instance.help_command))
+    application.add_handler(CommandHandler("broadcast", bot_instance.broadcast_command))
+    application.add_handler(CommandHandler("ban", bot_instance.ban_command))
+    application.add_handler(CommandHandler("unban", bot_instance.unban_command))
+    application.add_handler(CommandHandler("stats", bot_instance.stats_command))
+    application.add_handler(MessageHandler(filters.Document.ALL, bot_instance.handle_document))
+    
+    # Add error handler
+    application.add_error_handler(bot_instance.error_handler)
+    
+    logger.info("Bot started successfully!")
+    
+    # Run the bot with polling
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    bot = SVGToTGSBot()
-    bot.run()
+    # Start Flask server in a separate thread
+    def run_flask():
+        port = int(os.environ.get('PORT', 5000))
+        app.run(host='0.0.0.0', port=port, debug=False)
+    
+    flask_thread = Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("Flask web server started on port 5000")
+    
+    # Run the bot in the main thread
+    run_bot()
