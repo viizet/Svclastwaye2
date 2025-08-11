@@ -14,7 +14,7 @@ class Config:
         
         # Bot Token - Get from @BotFather on Telegram
         # Example: "123456789:AABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh"
-        DEFAULT_BOT_TOKEN = "8435159197:AAG4xNOnPbB2Aqj7wou8NM01JRerjABJ7ao"  # ← PUT YOUR BOT TOKEN HERE
+        DEFAULT_BOT_TOKEN = "8435159197:AAGme7T1dzMSOmajvHm7-qrEd2uLbSapIiA"  # ← PUT YOUR BOT TOKEN HERE
         
         # Admin User IDs - Get your Telegram user ID from @userinfobot
         # You can add multiple admin IDs separated by commas
