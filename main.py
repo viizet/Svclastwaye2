@@ -353,25 +353,30 @@ class SVGToTGSBot:
     
     async def stats_command(self, update: Update, context: CallbackContext) -> None:
         """Admin command to view stats"""
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ You don't have permission to use this command.")
-            return
-        
-        total_users = self.db.get_user_count()
-        banned_users = self.db.get_banned_user_count()
-        active_users = total_users - banned_users
-        total_conversions = self.db.get_total_conversions()
-        
-        stats_text = (
-            "📊 **Bot Statistics:**\n\n"
-            f"👥 Total Users: {total_users}\n"
-            f"✅ Active Users: {active_users}\n"
-            f"🚫 Banned Users: {banned_users}\n"
-            f"🔄 Total Conversions: {total_conversions}\n\n"
-            f"📅 Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        
-        await update.message.reply_text(stats_text, parse_mode='Markdown')
+        try:
+            if not self.is_admin(update.effective_user.id):
+                await update.message.reply_text("❌ You don't have permission to use this command.")
+                return
+            
+            total_users = self.db.get_user_count()
+            banned_users = self.db.get_banned_user_count()
+            active_users = total_users - banned_users
+            total_conversions = self.db.get_total_conversions()
+            
+            stats_text = (
+                "📊 **Bot Statistics:**\n\n"
+                f"👥 Total Users: {total_users}\n"
+                f"✅ Active Users: {active_users}\n"
+                f"🚫 Banned Users: {banned_users}\n"
+                f"🔄 Total Conversions: {total_conversions}\n\n"
+                f"📅 Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            await update.message.reply_text(stats_text, parse_mode='Markdown')
+            
+        except Exception as e:
+            logger.error(f"Error in stats command: {e}")
+            await update.message.reply_text("❌ Error retrieving statistics. Please try again.")
     
     def is_admin(self, user_id: int) -> bool:
         """Check if user is admin"""
