@@ -313,25 +313,33 @@ class Database:
     
     def get_user_count(self):
         """Get total user count"""
-        conn = sqlite3.connect(self.db_name)
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT COUNT(*) FROM users')
-        result = cursor.fetchone()[0]
-        
-        conn.close()
-        return result
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT COUNT(*) FROM users')
+            result = cursor.fetchone()
+            
+            conn.close()
+            return result[0] if result else 0
+        except Exception as e:
+            logger.error(f"Error getting user count: {e}")
+            return 0
     
     def get_banned_user_count(self):
         """Get banned user count"""
-        conn = sqlite3.connect(self.db_name)
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT COUNT(*) FROM users WHERE is_banned = 1')
-        result = cursor.fetchone()[0]
-        
-        conn.close()
-        return result
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT COUNT(*) FROM users WHERE is_banned = 1')
+            result = cursor.fetchone()
+            
+            conn.close()
+            return result[0] if result else 0
+        except Exception as e:
+            logger.error(f"Error getting banned user count: {e}")
+            return 0
     
     def log_conversion_activity(self, user_id, files_count, successful_count):
         """Log conversion activity"""
@@ -348,11 +356,15 @@ class Database:
     
     def get_total_conversions(self):
         """Get total conversion count"""
-        conn = sqlite3.connect(self.db_name)
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT COALESCE(SUM(successful_count), 0) FROM conversions')
-        result = cursor.fetchone()[0]
-        
-        conn.close()
-        return result
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT COALESCE(SUM(successful_count), 0) FROM conversions')
+            result = cursor.fetchone()
+            
+            conn.close()
+            return result[0] if result else 0
+        except Exception as e:
+            logger.error(f"Error getting total conversions: {e}")
+            return 0
